@@ -26,7 +26,7 @@ homicide_data <- homicide_data %>%
 
 # Create a binary variable for solved homicides
 homicide_data <- homicide_data %>%
-  mutate(solved_binary = ifelse(str_detect(disposition, "Closed"), 1, 0))
+  mutate(solved_binary = ifelse(disposition == "Closed by arrest", 1, 0))
 
 # Omit specified cities
 homicide_data <- homicide_data %>%
@@ -41,5 +41,27 @@ homicide_data$victim_age <- as.numeric(homicide_data$victim_age)
 
 # View the modified dataset
 head(homicide_data)
+```
+
+```{r}
+# Filter data for Baltimore, MD
+baltimore_data <- homicide_data %>%
+  filter(city_state == "Baltimore, MD")
+
+# Fit logistic regression model
+model <- glm(solved_binary ~ victim_age + victim_sex + victim_race, 
+             data = baltimore_data, family = binomial())
+
+# Extract adjusted odds ratio for male vs female victims
+# Calculate OR confidence interval
+model |> 
+  broom::tidy() |> 
+  mutate(
+    OR = exp(estimate), 
+    OR_CI_upper = exp(estimate + 1.96 * std.error),
+    OR_CI_lower = exp(estimate - 1.96 * std.error)) |> 
+  filter(term == "victim_sexMale") |> 
+  select(OR, OR_CI_lower, OR_CI_upper) |>
+  knitr::kable(digits = 3)
 ```
 
