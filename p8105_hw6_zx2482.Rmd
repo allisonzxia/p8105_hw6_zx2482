@@ -11,6 +11,8 @@ library(dplyr)
 library(stringr)
 ```
 
+## Problem 1
+
 ```{r echo = FALSE}
 # URL of the dataset
 url <- "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
@@ -98,5 +100,25 @@ model_results |>
   geom_point() + 
   geom_errorbar(aes(ymin = OR_CI_lower, ymax = OR_CI_upper)) + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## Problem 2
+
+```{r download data}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2022-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+```
+
+```{r}
+
 ```
 
