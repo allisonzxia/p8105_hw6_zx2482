@@ -1,0 +1,45 @@
+---
+title: "p8105_hw6_zx2482"
+author: "Allison Xia"
+date: "2023-12-02"
+output: github_document
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(stringr)
+```
+
+```{r echo = FALSE}
+# URL of the dataset
+url <- "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
+
+# Reading the dataset
+homicide_data <- read_csv(url)
+
+```
+```{r}
+# Create a city_state variable
+homicide_data <- homicide_data %>%
+  mutate(city_state = paste(city, state, sep = ", "))
+
+# Create a binary variable for solved homicides
+homicide_data <- homicide_data %>%
+  mutate(solved_binary = ifelse(str_detect(disposition, "Closed"), 1, 0))
+
+# Omit specified cities
+homicide_data <- homicide_data %>%
+  filter(!(city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"))) 
+
+# Limit analysis to cases where victim_race is white or black
+homicide_data <- homicide_data %>%
+  filter(victim_race %in% c("White", "Black"))
+
+# Ensure victim_age is numeric
+homicide_data$victim_age <- as.numeric(homicide_data$victim_age)
+
+# View the modified dataset
+head(homicide_data)
+```
+
