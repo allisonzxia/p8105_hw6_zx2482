@@ -65,3 +65,38 @@ model |>
   knitr::kable(digits = 3)
 ```
 
+Below, by incorporating `nest()`, `map()`, and `unnest()` into the preceding Baltimore-specific code, we fit a model for each of the cities, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims. We show the first 5 rows of the resulting dataframe of model results.
+
+```{r q1_glm_all_cities}
+model_results = 
+  homicide_df |> 
+  nest(data = -city_state) |> 
+  mutate(
+    models = map(data, \(df) glm(resolution ~ victim_age + victim_sex + victim_race, 
+                             family = binomial(), data = df)),
+    tidy_models = map(models, broom::tidy)) |> 
+  select(-models, -data) |> 
+  unnest(cols = tidy_models) |> 
+  mutate(
+    OR = exp(estimate), 
+    OR_CI_upper = exp(estimate + 1.96 * std.error),
+    OR_CI_lower = exp(estimate - 1.96 * std.error)) |> 
+  filter(term == "victim_sexMale") |> 
+  select(city_state, OR, OR_CI_lower, OR_CI_upper)
+
+model_results |>
+  slice(1:5) |> 
+  knitr::kable(digits = 3)
+```
+
+Below we generate a plot of the estimated ORs and CIs for each city, ordered by magnitude of the OR from smallest to largest. From this plot we see that most cities have odds ratios that are smaller than 1, suggesting that crimes with male victims have smaller odds of resolution compared to crimes with female victims after adjusting for victim age and race. This disparity is strongest in New yrok. In roughly half of these cities, confidence intervals are narrow and do not contain 1, suggesting a significant difference in resolution rates by sex after adjustment for victim age and race. 
+
+```{r q1_plot}
+model_results |> 
+  mutate(city_state = fct_reorder(city_state, OR)) |> 
+  ggplot(aes(x = city_state, y = OR)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = OR_CI_lower, ymax = OR_CI_upper)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
