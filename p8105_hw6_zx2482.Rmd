@@ -9,6 +9,7 @@ output: github_document
 library(readr)
 library(dplyr)
 library(stringr)
+library(modelr)
 ```
 
 ## Problem 1
@@ -71,10 +72,10 @@ Below, by incorporating `nest()`, `map()`, and `unnest()` into the preceding Bal
 
 ```{r q1_glm_all_cities}
 model_results = 
-  homicide_df |> 
+  homicide_data |> 
   nest(data = -city_state) |> 
   mutate(
-    models = map(data, \(df) glm(resolution ~ victim_age + victim_sex + victim_race, 
+    models = map(data, \(df) glm(solved_binary ~ victim_age + victim_sex + victim_race, 
                              family = binomial(), data = df)),
     tidy_models = map(models, broom::tidy)) |> 
   select(-models, -data) |> 
@@ -116,9 +117,67 @@ weather_df =
     tmin = tmin / 10,
     tmax = tmax / 10) |>
   select(name, id, everything())
+str(weather_df)
 ```
 
+```{r create bootstrap samples}
+set.seed(1202)
+
+boot_sample = function(df) {
+  sample_frac(df, replace = TRUE)
+}
+
+weather_samples = 
+  tibble(strap_number = 1:5000) |> 
+  mutate(
+    strap_sample = map(strap_number, \(i) boot_sample(df = weather_df)),
+    models=map(strap_sample,\(df) lm(tmax~tmin+prcp,data=df))
+  )
+```
+
+```{r r.squared_estimates}
+r_squared_estimates = 
+  weather_samples |> 
+  mutate(
+    results=map(models,broom::glance)
+  )|>
+  select(-strap_sample,-models)|>
+  unnest(results)|>
+  select(strap_number,r.squared)
+```
+
+
+```{r r.squared_estimates_plot}
+r_squared_estimates |> 
+ggplot(aes(x=r.squared))+
+  geom_density()+
+  labs(
+    title="r.squared estimates for 5000 bootstrap samples"
+  )
+```
+
+```{r log_1_log_2_estimates}
+log_estimates = 
+  weather_samples|>
+  mutate(
+    models=map(strap_sample,\(df) lm(tmax~tmin+prcp,data=df)),
+    results=map(models,broom::tidy)
+  )|>
+  select(-strap_sample,-models)|>
+  unnest(results)|>
+  select(strap_number,term,estimate)|>
+  filter(term %in% c("tmin","prcp"))|>
+  group_by(strap_number)|>
+  summarise(log_b1_b2=log(prod(estimate)))
+```
 ```{r}
-
+log_estimates |> 
+  ggplot(aes(x=log_b1_b2))+
+  geom_density()+
+  labs(
+    title="log(beta1*beta2) estimates for 5000 bootstrap samples"
+  )
 ```
+
+
 
