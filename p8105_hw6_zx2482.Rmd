@@ -10,6 +10,7 @@ library(readr)
 library(dplyr)
 library(stringr)
 library(modelr)
+library(tidyverse)
 ```
 
 ## Problem 1
@@ -180,10 +181,49 @@ log_estimates |>
 ```
 ```{r}
 r_squared_CI = quantile(pull(r_squared_estimates,r.squared),c(0.025,0.975))
-log_CI = quantile(pull(log_estimates,log_b1_b2),c(0.025,0.975),na.rm=TRUE)
+log_CI = quantile(pull(log_estimates,log_b0_b1),c(0.025,0.975),na.rm=TRUE)
 ```
 
 The distribution of $\hat{r}^2$ exhibits a peak around 0.92 and shows a left-skewed pattern, which indicates that a majority of the data points have $\hat{r}^2$ values close to 1,and 95% CI is `r r_squared_CI`. Such a distribution suggests that the variables `tmin` and `prcp` effectively explain a significant proportion of the variance in `tmax`.
 
 The distribution of $log(\hat{\beta_0*\beta_1})$ has a peak around -6 and is also left-skewed. There are 3355 instances of NaN values, accounting for approximately `r 3355/5000*100`% of the 5000 bootstrap samples. These NaNs arise due to the negative products of $\hat{\beta_0*\beta_1}$. Considering the remaining valid estimates, all the logarithmic values are negative, with the 95% confidence interval `r log_CI`. This indicates that the estimated product of the coefficients is below 1. The negative values in this interaction suggest that the combined effect of `tmin` and `prcp` on `tmax` is lesser than the product of their individual effects
+
+## Problem 3
+```{r load data}
+url_2 = "https://p8105.com/data/birthweight.csv"
+
+birthweight = read_csv(url_2)
+```
+
+
+```{r}
+# Convert numeric variables to factors
+birthweight =
+  birthweight |> 
+  mutate(babysex = factor(babysex, levels = c(1, 2), labels = c("Male", "Female")),
+         frace = factor(frace, levels = c(1, 2, 3, 4, 8, 9), labels = c("White", "Black", "Asian", "Puerto Rican", "Other", "Unknown")),
+         malform = factor(malform, levels = c(0, 1), labels = c("Absent", "Present")),
+         mrace = factor(mrace, levels = c(1, 2, 3, 4, 8), labels = c("White", "Black", "Asian", "Puerto Rican", "Other"))
+  ) |> 
+  na.omit()
+```
+
+I hypothesize that factors like the mother's health (BMI, weight gain during pregnancy), lifestyle choices (smoking), and demographics (age, race), and baby's sex significantly impact the baby's birth weight.
+
+```{r}
+lm_bwt = lm(bwt ~ ppbmi + wtgain + smoken + momage + mrace + babysex, data = birthweight)
+summary(model_bwt)
+```
+```{r}
+birthweight |> 
+  add_predictions(lm_bwt) |> 
+  add_residuals(lm_bwt)|>
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point()+
+  labs(
+    title="Residuals Against Fitted Values",
+    x="fitted values",
+    y="residuals"
+  )
+```
 
