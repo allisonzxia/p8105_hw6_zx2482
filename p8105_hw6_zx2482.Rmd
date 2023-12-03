@@ -5,13 +5,10 @@ date: "2023-12-02"
 output: github_document
 ---
 
-```{r}
-library(readr)
-library(dplyr)
-library(stringr)
-library(modelr)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 library(tidyverse)
-library(purrr)
+library(modelr)
 ```
 
 ## Problem 1
@@ -26,19 +23,19 @@ homicide_data <- read_csv(url)
 ```
 ```{r}
 # Create a city_state variable
-homicide_data <- homicide_data %>%
+homicide_data <- homicide_data |> 
   mutate(city_state = paste(city, state, sep = ", "))
 
 # Create a binary variable for solved homicides
-homicide_data <- homicide_data %>%
+homicide_data <- homicide_data |>
   mutate(solved_binary = ifelse(disposition == "Closed by arrest", 1, 0))
 
 # Omit specified cities
-homicide_data <- homicide_data %>%
+homicide_data <- homicide_data |>
   filter(!(city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"))) 
 
 # Limit analysis to cases where victim_race is white or black
-homicide_data <- homicide_data %>%
+homicide_data <- homicide_data |>
   filter(victim_race %in% c("White", "Black"))
 
 # Ensure victim_age is numeric
@@ -50,7 +47,7 @@ head(homicide_data)
 
 ```{r}
 # Filter data for Baltimore, MD
-baltimore_data <- homicide_data %>%
+baltimore_data <- homicide_data |>
   filter(city_state == "Baltimore, MD")
 
 # Fit logistic regression model
@@ -213,7 +210,7 @@ I hypothesize that factors like the mother's health (BMI, weight gain during pre
 
 ```{r}
 lm_bwt = lm(bwt ~ ppbmi + wtgain + smoken + momage + mrace + babysex, data = birthweight)
-summary(model_bwt)
+summary(lm_bwt)
 ```
 ```{r}
 birthweight |> 
@@ -256,5 +253,5 @@ rmse |>
   summarise(across(starts_with("rmse"), mean))
 ```
 
-
+Based on the cross-validation results, the second alternative model – the one that incorporates head circumference, length, sex, and all their interactions – emerges as the top performer. This model achieves the lowest root mean square error (RMSE), indicating its superior accuracy in predictions relative to both my initial model and the first alternative model. 
 
