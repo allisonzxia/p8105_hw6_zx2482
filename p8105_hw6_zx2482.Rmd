@@ -149,14 +149,14 @@ r_squared_estimates =
 
 ```{r r.squared_estimates_plot}
 r_squared_estimates |> 
-ggplot(aes(x=r.squared))+
+ggplot(aes(x =r.squared))+
   geom_density()+
   labs(
     title="r.squared estimates for 5000 bootstrap samples"
   )
 ```
 
-```{r log_1_log_2_estimates}
+```{r log_0_log_1_estimates}
 log_estimates = 
   weather_samples|>
   mutate(
@@ -168,16 +168,22 @@ log_estimates =
   select(strap_number,term,estimate)|>
   filter(term %in% c("tmin","prcp"))|>
   group_by(strap_number)|>
-  summarise(log_b1_b2=log(prod(estimate)))
+  summarise(log_b0_b1=log(prod(estimate)))
 ```
 ```{r}
 log_estimates |> 
-  ggplot(aes(x=log_b1_b2))+
+  ggplot(aes(x=log_b0_b1))+
   geom_density()+
   labs(
-    title="log(beta1*beta2) estimates for 5000 bootstrap samples"
+    title="log(beta_0*beta_1) estimates for 5000 bootstrap samples"
   )
 ```
+```{r}
+r_squared_CI = quantile(pull(r_squared_estimates,r.squared),c(0.025,0.975))
+log_CI = quantile(pull(log_estimates,log_b1_b2),c(0.025,0.975),na.rm=TRUE)
+```
 
+The distribution of $\hat{r}^2$ exhibits a peak around 0.92 and shows a left-skewed pattern, which indicates that a majority of the data points have $\hat{r}^2$ values close to 1,and 95% CI is `r r_squared_CI`. Such a distribution suggests that the variables `tmin` and `prcp` effectively explain a significant proportion of the variance in `tmax`.
 
+The distribution of $log(\hat{\beta_0*\beta_1})$ has a peak around -6 and is also left-skewed. There are 3355 instances of NaN values, accounting for approximately `r 3355/5000*100`% of the 5000 bootstrap samples. These NaNs arise due to the negative products of $\hat{\beta_0*\beta_1}$. Considering the remaining valid estimates, all the logarithmic values are negative, with the 95% confidence interval `r log_CI`. This indicates that the estimated product of the coefficients is below 1. The negative values in this interaction suggest that the combined effect of `tmin` and `prcp` on `tmax` is lesser than the product of their individual effects
 
