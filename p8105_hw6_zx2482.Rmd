@@ -11,6 +11,7 @@ library(dplyr)
 library(stringr)
 library(modelr)
 library(tidyverse)
+library(purrr)
 ```
 
 ## Problem 1
@@ -226,4 +227,34 @@ birthweight |>
     y="residuals"
   )
 ```
+
+```{r}
+set.seed(222) # For reproducibility
+
+# 100 resamples
+cv_data = 
+  crossv_mc(birthweight, 100) |> 
+  mutate(
+    train=map(train,as_tibble),
+    test=map(test,as_tibble)
+  )
+
+# Calculate RMSE for each model
+rmse = 
+  cv_data |> 
+  mutate(
+    my_mod  = map(train, \(df) lm_bwt),
+    alt_mod_1  = map(train, \(df) lm(bwt ~ blength + gaweeks, data = df)),
+    alt_mod_2  = map(train, \(df) lm(bwt ~ bhead*blength*babysex, data=df)),
+    rmse_my_mod = map2_dbl(.x=my_mod, .y=test, ~rmse(model = .x, data = .y)),
+    rmse_alt_mod_1 = map2_dbl(.x=alt_mod_1, .y=test, ~rmse(model = .x, data = .y)),
+    rmse_alt_mod_2 = map2_dbl(.x=alt_mod_2, .y=test, ~rmse(model = .x, data = .y))
+    )
+
+# Compare models
+rmse |> 
+  summarise(across(starts_with("rmse"), mean))
+```
+
+
 
